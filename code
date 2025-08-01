@@ -1,0 +1,362 @@
+### 🔹 Basic Joins
+
+1. **Retrieve all movies along with their directors:**
+
+```sql
+SELECT m.title AS movie, n.name AS director
+FROM movie AS m
+INNER JOIN director_mapping AS d ON m.id = d.movie_id
+INNER JOIN names AS n ON d.name_id = n.id;
+```
+
+2. **Get all movies and their genres:**
+
+```sql
+SELECT m.title AS movie, g.genre AS genre
+FROM movie AS m
+INNER JOIN genre AS g ON m.id = g.movie_id;
+```
+
+3. **List all actors along with the movies they have acted in:**
+
+```sql
+SELECT n.name, r.category, m.title
+FROM movie AS m
+INNER JOIN role_mapping AS r ON m.id = r.movie_id
+INNER JOIN names AS n ON r.name_id = n.id;
+```
+
+4. **Get all movies and their corresponding writers:**
+
+```sql
+SELECT m.title AS movie, n.name AS writer
+FROM movie AS m
+INNER JOIN director_mapping AS d ON m.id = d.movie_id
+INNER JOIN names AS n ON d.name_id = n.id;
+```
+
+5. **Retrieve all users who have rated movies along with the rating they provided:**
+
+```sql
+SELECT m.title, r.total_votes, r.avg_rating
+FROM movie AS m
+INNER JOIN ratings AS r ON m.id = r.movie_id;
+```
+
+---
+
+### 🔹 Inner Joins
+
+1. **Find the names of actors who have acted in at least one movie:**
+
+```sql
+SELECT m.title, n.name
+FROM movie AS m
+LEFT JOIN director_mapping AS d ON m.id = d.movie_id
+LEFT JOIN names AS n ON d.name_id = n.id;
+```
+
+2. **List all directors who have directed more than 5 movies:**
+
+```sql
+SELECT n.name AS director, COUNT(*) AS noofmovies
+FROM director_mapping AS d
+INNER JOIN names AS n ON d.name_id = n.id
+INNER JOIN movie AS m ON d.movie_id = m.id
+GROUP BY n.name
+HAVING COUNT(*) > 3;
+```
+
+3. **Retrieve all movies that have at least one review:**
+
+```sql
+SELECT m.title, r.total_votes AS noOfReviews
+FROM movie AS m
+INNER JOIN ratings AS r ON m.id = r.movie_id
+WHERE r.total_votes > 2110
+ORDER BY r.total_votes;
+```
+
+4. **Get a list of all movies along with their production company names:**
+
+```sql
+SELECT title, production_company
+FROM movie;
+```
+
+5. **Fetch all movies with their country of origin:**
+
+```sql
+SELECT title, country
+FROM movie;
+```
+
+---
+
+### 🔹 Left Joins
+
+1. **List all movies, even those without ratings:**
+
+```sql
+SELECT m.title, r.avg_rating
+FROM movie AS m
+LEFT JOIN ratings AS r ON m.id = r.movie_id;
+```
+
+2. **Get all directors, including those who haven't directed any movies:**
+
+```sql
+SELECT n.name, m.title
+FROM director_mapping AS d
+RIGHT JOIN movie AS m ON d.movie_id = m.id
+INNER JOIN names AS n ON d.name_id = n.id;
+```
+
+3. **List all movies along with their awards (if any):**
+
+```sql
+SELECT m.title, n.name
+FROM movie AS m
+LEFT JOIN director_mapping AS d ON m.id = d.movie_id
+LEFT JOIN names AS n ON d.name_id = n.id;
+```
+
+4. **Fetch all users along with the movies they have reviewed (even if they haven't reviewed any):**
+
+```sql
+SELECT m.title, r.avg_rating
+FROM movie AS m
+LEFT JOIN ratings AS r ON m.id = r.movie_id;
+```
+
+---
+
+### 🔹 Right Joins
+
+1. **Find all movies and ensure that genres are included even if no movies belong to that genre:**
+
+```sql
+SELECT m.title, g.genre
+FROM movie AS m
+RIGHT JOIN genre AS g ON m.id = g.movie_id;
+```
+
+2. **Retrieve all writers and ensure that movies written by them (if any) are included:**
+
+```sql
+SELECT mn.nm AS writer, m.title AS movie
+FROM movie AS m
+RIGHT JOIN (
+    SELECT d.movie_id AS id, n.name AS nm
+    FROM director_mapping AS d
+    INNER JOIN names AS n ON d.name_id = n.id
+) AS mn ON m.id = mn.id;
+```
+
+3. **List all reviews and the movies they belong to, including reviews without associated movies:**
+
+```sql
+SELECT m.title AS movie, r.median_rating
+FROM movie AS m
+RIGHT JOIN ratings AS r ON m.id = r.movie_id;
+```
+
+4. **Fetch all production companies and the movies they have produced, even if no movies are linked to some companies:**
+
+```sql
+SELECT title, production_company
+FROM movie;
+```
+
+5. **Fetch all actors and their movies even if they haven’t acted in one:**
+
+```sql
+SELECT n.name AS actor, m.title AS movie
+FROM role_mapping AS r
+INNER JOIN names AS n ON r.name_id = n.id
+RIGHT JOIN movie AS m ON r.movie_id = m.id;
+```
+
+---
+
+### 🔹 Complex Joins (Multiple Joins)
+
+1. **Retrieve the top 5 highest-rated movies along with their directors and genres:**
+
+```sql
+SELECT m.title, n.name, g.genre, r.avg_rating
+FROM movie AS m
+INNER JOIN director_mapping AS d ON m.id = d.movie_id
+INNER JOIN genre AS g ON m.id = g.movie_id
+INNER JOIN names AS n ON d.name_id = n.id
+INNER JOIN ratings AS r ON m.id = r.movie_id
+ORDER BY r.avg_rating DESC
+LIMIT 5;
+```
+
+2. **Find actors who have worked with the same director in at least 3 movies:**
+
+```sql
+SELECT t.actor, s.director, COUNT(*)
+FROM (
+  SELECT d.movie_id AS id, n.name AS director
+  FROM director_mapping AS d
+  INNER JOIN names AS n ON d.name_id = n.id
+) AS s
+INNER JOIN (
+  SELECT m.id AS mov, n.name AS actor
+  FROM movie AS m
+  INNER JOIN role_mapping AS r ON m.id = r.movie_id
+  INNER JOIN names AS n ON r.name_id = n.id
+) AS t ON s.id = t.mov
+GROUP BY t.actor, s.director
+HAVING COUNT(*) > 3;
+```
+
+3. **Get a list of all movies that have both an actor and a writer in common:**
+
+```sql
+SELECT t.actor, s.director, GROUP_CONCAT(t.movie, '') AS movie
+FROM (
+  SELECT d.movie_id AS id, n.name AS director
+  FROM director_mapping AS d
+  INNER JOIN names AS n ON d.name_id = n.id
+) AS s
+INNER JOIN (
+  SELECT m.id AS mov, n.name AS actor, m.title AS movie
+  FROM movie AS m
+  INNER JOIN role_mapping AS r ON m.id = r.movie_id
+  INNER JOIN names AS n ON r.name_id = n.id
+) AS t ON s.id = t.mov
+GROUP BY t.actor, s.director
+HAVING COUNT(*) > 1;
+```
+
+4. **List all directors and the actors they have worked with, even if they directed only one movie:**
+
+```sql
+SELECT t.actor, s.director, t.movie
+FROM (
+  SELECT d.movie_id AS id, n.name AS director
+  FROM director_mapping AS d
+  INNER JOIN names AS n ON d.name_id = n.id
+) AS s
+INNER JOIN (
+  SELECT m.id AS mov, n.name AS actor, m.title AS movie
+  FROM movie AS m
+  INNER JOIN role_mapping AS r ON m.id = r.movie_id
+  INNER JOIN names AS n ON r.name_id = n.id
+) AS t ON s.id = t.mov;
+```
+
+5. **Retrieve all movies with their genres, directors in one query:**
+
+```sql
+SELECT m.title AS movie, GROUP_CONCAT(g.genre, '') AS genres, n.name AS director
+FROM movie AS m
+INNER JOIN genre AS g ON m.id = g.movie_id
+INNER JOIN director_mapping AS d ON m.id = d.movie_id
+INNER JOIN names AS n ON d.name_id = n.id
+GROUP BY m.title, n.name;
+```
+
+---
+
+### 🔹 Partition By and Window Function Questions
+
+1. **Retrieve the top 5 highest-rated movies per genre using RANK():**
+
+```sql
+SELECT s.movie, s.genre, s.avg_rating
+FROM (
+  SELECT m.title AS movie, g.genre, r.avg_rating,
+         RANK() OVER(PARTITION BY g.genre ORDER BY r.avg_rating DESC) AS rank1
+  FROM movie AS m
+  INNER JOIN genre AS g ON m.id = g.movie_id
+  INNER JOIN ratings AS r ON m.id = r.movie_id
+) AS s
+WHERE s.rank1 <= 5;
+```
+
+2. **Find the cumulative revenue for each movie ordered by release date using SUM() OVER():**
+
+```sql
+SELECT title, date_published, duration,
+       SUM(duration) OVER(ORDER BY date_published, title) AS revenue
+FROM movie;
+```
+
+3. **Get the previous movie rating for each movie using LAG():**
+
+```sql
+SELECT m.title, m.date_published, r.avg_rating,
+       LAG(r.avg_rating) OVER(ORDER BY m.date_published) AS previousMovieRating
+FROM movie AS m
+INNER JOIN ratings AS r ON m.id = r.movie_id;
+```
+
+4. **Get the next movie rating for each movie using LEAD():**
+
+```sql
+SELECT m.title, m.date_published, r.avg_rating,
+       LEAD(r.avg_rating) OVER(ORDER BY m.date_published) AS nextMovieRating
+FROM movie AS m
+INNER JOIN ratings AS r ON m.id = r.movie_id;
+```
+
+5. **Retrieve the average movie rating per genre using AVG() OVER(PARTITION BY genre):**
+
+```sql
+SELECT DISTINCT g.genre, AVG(r.avg_rating) OVER(PARTITION BY g.genre) AS avgrating_genre
+FROM movie AS m
+INNER JOIN genre AS g ON m.id = g.movie_id
+INNER JOIN ratings AS r ON m.id = r.movie_id;
+```
+
+6. **Rank movies within each genre based on IMDb rating using DENSE\_RANK():**
+
+```sql
+SELECT m.title, g.genre, r.avg_rating,
+       DENSE_RANK() OVER(PARTITION BY g.genre ORDER BY r.avg_rating DESC) AS rankk
+FROM movie AS m
+INNER JOIN genre AS g ON m.id = g.movie_id
+INNER JOIN ratings AS r ON m.id = r.movie_id;
+```
+
+7. **Find the running total of box office earnings for movies released after 2000:**
+
+```sql
+SELECT title, year, worlwide_gross_income
+FROM movie
+WHERE year > 2000
+ORDER BY year;
+```
+
+8. **Find the first and last movie released for each director using FIRST\_VALUE() and LAST\_VALUE():**
+
+```sql
+SELECT n.name, m.title,
+       FIRST_VALUE(m.title) OVER(PARTITION BY n.name) AS first,
+       LAST_VALUE(m.title) OVER(PARTITION BY n.name) AS last
+FROM movie AS m
+INNER JOIN director_mapping AS d ON m.id = d.movie_id
+INNER JOIN names AS n ON d.name_id = n.id;
+```
+
+9. **Compute the difference in box office earnings between each movie and the previous one for a director:**
+
+```sql
+SELECT title, date_published, duration,
+       (LAG(duration) OVER(ORDER BY date_published, title)) - duration AS revenue
+FROM movie;
+```
+
+10. **Find the total number of movies each actor has acted in using COUNT() OVER(PARTITION BY actor\_name):**
+
+```sql
+SELECT n.name, m.title,
+       COUNT(m.title) OVER(PARTITION BY n.name)
+FROM movie AS m
+INNER JOIN role_mapping AS r ON m.id = r.movie_id
+INNER JOIN names AS n ON r.name_id = n.id;
+```
